@@ -1,5 +1,10 @@
 // src/index.js
 
+//"lowdb": "^7.0.0",
+//     "node-telegram-bot-api": "^0.66.0",
+//     "uuid": "^10.0.0"
+// devdependecis
+//     "nodemon": "^3.1.4"
 // 1. Cargar el módulo para manejar variables de entorno (si usas un archivo .env)
 require('dotenv').config();
 // 2. Importar la librería del bot de Telegram
@@ -7,19 +12,14 @@ const TelegramBot = require('node-telegram-bot-api');
 // 3. Obtener el token del bot desde las variables de entorno
 // ¡IMPORTANTE: Crea un archivo .env en la raíz de tu proyecto conuna línea como:
 // TELEGRAM_BOT_TOKEN=TU_TOKEN_AQUI
-    const TOKEN = process.env.TELEGRAM_BOT_TOKEN;// 4. Verificar que el token esté definido
+     const TOKEN = process.env.TELEGRAM_BOT_TOKEN;// 4. Verificar que el token esté definido
+    ;// 4. Verificar que el token esté definido
 if (!TOKEN) {
     console.error('Error: El token del bot de Telegram no está definido. Asegúrate de configurar la variable de entornoTELEGRAM_BOT_TOKEN.');
     process.exit(1); // Salir de la aplicación si no hay token
 }
 // 5. Crear una nueva instancia del bot
 // El polling: true hace que el bot escuche los mensajes entrantes constantemente.
-
-
-    const bot = new TelegramBot(TOKEN, {
-        polling: true,
-    });
-
 console.log('Bot de Luna Aullante iniciando...');
 // 6. Manejar el comando /start
 bot.onText(/\/start/, (msg) => {

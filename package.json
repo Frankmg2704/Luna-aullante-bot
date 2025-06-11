@@ -1,0 +1,29 @@
+{
+  "name": "luna-aullante-bot",
+  "version": "1.0.0",
+  "description": "Bot de Telegram para el juego del Lobo con servidor en Termux.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "telegram-bot",
+    "werewolf",
+    "game",
+    "nodejs",
+    "termux"
+  ],
+  "author": "Franky Montero & AI Senior Dev",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "https-proxy-agent": "^7.0.6",
+    "lowdb": "^7.0.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

@@ -12,7 +12,7 @@ const TelegramBot = require('node-telegram-bot-api');
 // 3. Obtener el token del bot desde las variables de entorno
 // ¡IMPORTANTE: Crea un archivo .env en la raíz de tu proyecto conuna línea como:
 // TELEGRAM_BOT_TOKEN=TU_TOKEN_AQUI
-    const TOKEN ='7712891835:AAElQdFhbJUBA5ZISgYZJK6uOewJB5gDG7s'
+     const TOKEN = process.env.TELEGRAM_BOT_TOKEN;// 4. Verificar que el token esté definido
     ;// 4. Verificar que el token esté definido
 if (!TOKEN) {
     console.error('Error: El token del bot de Telegram no está definido. Asegúrate de configurar la variable de entornoTELEGRAM_BOT_TOKEN.');

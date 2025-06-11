@@ -20,7 +20,6 @@ if (!TOKEN) {
 }
 // 5. Crear una nueva instancia del bot
 // El polling: true hace que el bot escuche los mensajes entrantes constantemente.
-    const bot = new TelegramBot(TOKEN, { polling: true });
 console.log('Bot de Luna Aullante iniciando...');
 // 6. Manejar el comando /start
 bot.onText(/\/start/, (msg) => {

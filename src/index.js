@@ -4,7 +4,6 @@
 require('dotenv').config();
 // 2. Importar la librería del bot de Telegram
 const TelegramBot = require('node-telegram-bot-api');
-const HttpsProxyAgent = require('https-proxy-agent');
 // 3. Obtener el token del bot desde las variables de entorno
 // ¡IMPORTANTE: Crea un archivo .env en la raíz de tu proyecto conuna línea como:
 // TELEGRAM_BOT_TOKEN=TU_TOKEN_AQUI
@@ -15,17 +14,10 @@ if (!TOKEN) {
 }
 // 5. Crear una nueva instancia del bot
 // El polling: true hace que el bot escuche los mensajes entrantes constantemente.
-const proxyConfig = {
-    host: '172.17.0.16',      // Reemplaza con tu host de proxy
-    port: 8080,                // Reemplaza con tu puerto de proxy
-};
-const agent = new HttpsProxyAgent(proxyConfig);
+
 
     const bot = new TelegramBot(TOKEN, {
         polling: true,
-        request: {
-            agent: agent  // Usa el agente proxy configurado
-        }
     });
 
 console.log('Bot de Luna Aullante iniciando...');

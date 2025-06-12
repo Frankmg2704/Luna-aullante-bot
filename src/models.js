@@ -1,7 +1,8 @@
-// src/models.js
+const { v4: uuidv4 } = require('uuid'); // Asegúrate de importar uuid
+
 class Game {
     constructor(creatorId, name = "Partida sin nombre") {
-        this.id = uuidv4(); // Usar el paquete uuid instalado
+        this.id = uuidv4();
         this.name = name;
         this.creatorId = creatorId;
         this.state = "LOBBY"; // LOBBY, IN_PROGRESS, ENDED
@@ -25,3 +26,11 @@ class Player {
 // Almacenamiento en memoria (luego migrar a LowDB)
 const games = {};
 const players = {};
+
+module.exports = {
+    Game,
+    Player,
+    games,   // Exporta games
+    players  // Exporta players
+};
+

@@ -75,6 +75,8 @@ web_modules/
 
 # dotenv environment variable files
 .git-credentials
+.viminfo
+.config/
 .gitconfig
 .env
 .env.development.local

@@ -14,8 +14,10 @@ async function initializeDb() {
     try {
         // Define la ruta del archivo de la base de datos de forma segura
         // Lo mantenemos en la raíz del proyecto para simplificar, como se discutió.
-        const file = path.join(process.cwd(), 'db.json');
+        // const file = path.join(process.cwd(), 'db.json');
+        const file = path.join(__dirname, 'db.json');
         console.log(`DEBUG: DB (data/database.js): La ruta del archivo db.json es: ${file}`);
+        console.log("Ruta absoluta del archivo DB:", path.resolve(file));
 
         const adapter = new JSONFile(file);
         db = new Low(adapter); // Asigna la instancia a la variable 'db' global en este módulo

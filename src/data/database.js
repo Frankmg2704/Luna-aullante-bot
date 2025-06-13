@@ -1,68 +1,44 @@
 // src/data/database.js
-const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node');
 const path = require('path');
+const Database = require('better-sqlite3');
 
-let db; // La instancia de LowDB será accesible desde aquí
+const dbPath = path.join(__dirname, 'database.sqlite');
+let dbInstance; // Declara la instancia de la base de datos aquí
 
-/**
- * Inicializa la base de datos LowDB.
- * Asegura que el archivo db.json existe y tiene la estructura básica.
- */
-async function initializeDb() {
-    console.log('DEBUG: DB (data/database.js): Intentando inicializar db...');
-    try {
-        // Define la ruta del archivo de la base de datos de forma segura
-        // Lo mantenemos en la raíz del proyecto para simplificar, como se discutió.
-        // const file = path.join(process.cwd(), 'db.json');
-        const file = path.join(__dirname, 'db.json');
-        console.log(`DEBUG: DB (data/database.js): La ruta del archivo db.json es: ${file}`);
-        console.log("Ruta absoluta del archivo DB:", path.resolve(file));
+function initializeDb() {
+    if (!dbInstance) {
+        dbInstance = new Database(dbPath, { verbose: console.log });
 
-        const adapter = new JSONFile(file);
-        db = new Low(adapter); // Asigna la instancia a la variable 'db' global en este módulo
+        dbInstance.exec(`
+            CREATE TABLE IF NOT EXISTS games (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                creatorId INTEGER NOT NULL,
+                state TEXT DEFAULT 'LOBBY',
+                invitationCode TEXT NOT NULL UNIQUE, -- Añadimos UNIQUE para el código
+                maxPlayers INTEGER DEFAULT 12,
+                minPlayers INTEGER DEFAULT 5
+            );
 
-        console.log('DEBUG: DB (data/database.js): Antes de db.read(), db.data es:', JSON.stringify(db.data));
-        await db.read(); // Intenta leer el archivo db.json
-        console.log('DEBUG: DB (data/database.js): Después de db.read(), db.data es:', JSON.stringify(db.data));
-
-        // IMPORTANTE: Asegura que db.data no es null/undefined antes de usarlo
-        if (db.data === null) { // Si el archivo estaba vacío o no existía, db.data será null
-            console.log('DEBUG: DB (data/database.js): db.data es null, inicializando con estructura por defecto.');
-            db.data = { games: [], players: [] }; // Inicializa con la estructura por defecto
-        } else if (!Array.isArray(db.data.games) || !Array.isArray(db.data.players)) {
-            // Si db.data existe pero le faltan las colecciones principales
-            console.log('DEBUG: DB (data/database.js): db.data existe pero le faltan colecciones, ajustando estructura.');
-            db.data.games = db.data.games || [];
-            db.data.players = db.data.players || [];
-        } else {
-            console.log('DEBUG: DB (data/database.js): db.data ya tiene la estructura esperada.');
-        }
-
-        console.log('DEBUG: DB (data/database.js): Contenido FINAL de db.data ANTES de write:', JSON.stringify(db.data));
-        await db.write(); // Guarda los cambios (esto creará el archivo si no existe, o actualizará si se inicializó)
-        console.log('DEBUG: DB (data/database.js): Contenido FINAL de db.data DESPUÉS de write:', JSON.stringify(db.data));
-        console.log('DEBUG: DB (data/database.js): db.json escrito (o actualizado si se inicializó).');
-    } catch (error) {
-        console.error('ERROR FATAL: DB (data/database.js): Error al inicializar o leer la base de datos:', error.message);
-        throw new Error('Error crítico al iniciar la base de datos: ' + error.message);
+            CREATE TABLE IF NOT EXISTS players (
+                id TEXT PRIMARY KEY,
+                userId INTEGER NOT NULL,
+                gameId TEXT NOT NULL,
+                role TEXT DEFAULT NULL,
+                isAlive INTEGER DEFAULT 1,
+                FOREIGN KEY (gameId) REFERENCES games(id) ON DELETE CASCADE -- Agregamos ON DELETE CASCADE
+            );
+        `);
+        console.log('DEBUG: Base de datos SQLite inicializada y tablas creadas/verificadas.');
     }
+    return dbInstance;
 }
 
-/**
- * Retorna la instancia de LowDB.
- * Asegúrate de haber llamado a initializeDb() primero.
- */
 function getDb() {
-    if (!db) {
-        // Esto debería ser un error fatal si se llama getDb antes de initializeDb
-        console.error('ERROR FATAL: DB (data/database.js): La base de datos no ha sido inicializada. Llama a initializeDb() primero.');
-        process.exit(1); // Salir si la DB no está lista
+    if (!dbInstance) {
+        throw new Error("La base de datos no ha sido inicializada. Llama a initializeDb() primero.");
     }
-    return db;
+    return dbInstance;
 }
 
-module.exports = {
-    initializeDb,
-    getDb
-};
+module.exports = { initializeDb, getDb };

@@ -5,25 +5,22 @@ console.log('DEBUG: Iniciando index.js...');
 require('dotenv').config();
 console.log('DEBUG: dotenv cargado.');
 
-// Importar las clases Game y Player
+// Importar las clases Game y Player y las funciones de DB
 let Game, Player;
+let initializeDb, getDb;
 try {
     const models = require('./models');
     Game = models.Game;
     Player = models.Player;
-    console.log('DEBUG: models.js cargado correctamente. Clases Game y Player disponibles.');
+    ({ initializeDb, getDb } = require('./data/database')); // Importamos ambas
+    console.log('DEBUG: modules.js y database.js cargados correctamente. Clases Game y Player disponibles.');
 } catch (error) {
-    console.error('ERROR FATAL: No se pudo cargar src/models.js:', error.message);
+    console.error('ERROR FATAL: No se pudo cargar módulos esenciales:', error.message);
     process.exit(1);
 }
 
-// ** -- SECCIÓN CLAVE: AHORA USAMOS EL MÓDULO DE DB -- **
-const { initializeDb, getDb } = require('./data/database'); // Importamos nuestras funciones de DB
-let db; // Declara db aquí para que sea accesible en este archivo
+let db; // Declara db aquí para que sea accesible en todo el archivo después de inicializada
 let userStates = {}; // Declara userStates aquí para que sea accesible
-
-// ** -- FIN SECCIÓN LOWDB -- **
-
 
 // 2. Importar la librería del bot de Telegram
 let TelegramBot;
@@ -43,16 +40,15 @@ if (!TOKEN) {
     console.error('ERROR FATAL: El token del bot de Telegram no está definido. Asegúrate de configurar la variable de entorno TELEGRAM_BOT_TOKEN.');
     process.exit(1);
 }
-console.log('DEBUG: Token de Telegram cargado (si existe).');
-
+console.log('DEBUG: Token de Telegram cargado.');
 
 // ** -- Función principal asíncrona para iniciar todo el bot -- **
 async function main() {
     console.log('DEBUG: Ejecutando función main().');
     try {
-        await initializeDb(); // Llama a la función de inicialización de la base de datos
-        db = getDb(); // Obtiene la instancia de la base de datos una vez inicializada
-        console.log('DEBUG: index.js (main): db.data después de initializeDb y getDb:', JSON.stringify(db.data));
+        // Inicializa la base de datos y obtén la instancia
+        db = initializeDb();
+        console.log('DEBUG: Base de datos inicializada y accesible.');
 
         console.log('INFO: Bot de Luna Aullante iniciando...');
         const bot = new TelegramBot(TOKEN, { polling: true });
@@ -102,6 +98,7 @@ async function main() {
                     });
                     break;
                 case 'search_public_game':
+                    // TODO: Implementar lógica para buscar partidas públicas.
                     bot.sendMessage(chatId, 'Buscando partidas públicas...(Esta función estará disponible pronto).');
                     break;
                 case 'enter_code':
@@ -111,6 +108,7 @@ async function main() {
                 case data.startsWith('start_game:'):
                     const gameIdToStart = data.split(':')[1];
                     // TODO: Implementar lógica para iniciar partida
+                    // Para obtener la partida, usarías: const game = db.prepare('SELECT * FROM games WHERE id = ?').get(gameIdToStart);
                     bot.sendMessage(chatId, `Función para iniciar partida *${gameIdToStart}* en desarrollo.`, { parse_mode: 'Markdown' });
                     break;
                 default:
@@ -127,7 +125,7 @@ async function main() {
             const userId = msg.from.id;
 
             if (text && text.startsWith('/')) {
-                return;
+                return; // Ignorar comandos, ya se manejan con bot.onText
             }
 
             console.log(`INFO: Mensaje de texto recibido de ${userName} (${chatId}): "${text}"`);
@@ -140,27 +138,20 @@ async function main() {
 
                 try {
                     const newGame = new Game(userId, gameName);
-                    
-                    // ¡Puntos de depuración clave antes de hacer push!
-                    console.log('DEBUG: index.js (EXPECTING_GAME_NAME): Antes de push, db.data es:', JSON.stringify(db.data));
-                    console.log('DEBUG: index.js (EXPECTING_GAME_NAME): Antes de push, db.data.games es:', JSON.stringify(db.data.games));
+                    newGame.save(db); // ¡Aquí se guarda la partida en la DB!
+                    console.log(`DEBUG: Nueva partida creada y guardada: ${newGame.name}, Código: ${newGame.invitationCode}`);
 
-                    // Asegura que db.data.games es un array antes de hacer push (doble chequeo)
-                    if (!db.data || !Array.isArray(db.data.games)) {
-                        console.warn('WARN: db.data o db.data.games no es un array, inicializando para evitar TypeError.');
-                        db.data = db.data || {}; // Asegura que db.data es un objeto
-                        db.data.games = []; // Asegura que games es un array
-                    }
-
-                    db.data.games.push(newGame);
-                    await db.write();
+                    // Añadir el creador como el primer jugador de la partida
+                    const creatorPlayer = new Player(userId, newGame.id);
+                    creatorPlayer.save(db); // Guardar el jugador creador
+                    console.log(`DEBUG: Jugador creador (${userName}) añadido a la partida.`);
 
                     delete userStates[chatId];
 
                     const confirmationMessage = `¡Partida *"${newGame.name}"* creada con éxito! 🎉\n\n` +
-                                                `Código de invitación: \`${newGame.invitationCode}\`\n\n` +
-                                                `Invita a tus amigos y cuando estén listos, iniciaremos el juego.`;
-                    
+                        `Código de invitación: \`${newGame.invitationCode}\`\n\n` +
+                        `Invita a tus amigos y cuando estén listos, iniciaremos el juego.`;
+
                     const keyboard = {
                         reply_markup: {
                             inline_keyboard: [
@@ -181,43 +172,31 @@ async function main() {
                 const joinCode = text.trim().toUpperCase();
 
                 try {
-                    // ¡Puntos de depuración clave antes de acceder a db.data.games!
-                    console.log('DEBUG: index.js (EXPECTING_JOIN_CODE): Antes de find, db.data es:', JSON.stringify(db.data));
-                    console.log('DEBUG: index.js (EXPECTING_JOIN_CODE): Antes de find, db.data.games es:', JSON.stringify(db.data.games));
-
-                    // Asegura que db.data.games es un array antes de intentar buscar en él
-                    if (!db.data || !Array.isArray(db.data.games)) {
-                        console.warn('WARN: db.data o db.data.games no es un array, evitando TypeError en la búsqueda.');
-                        // Si no es un array, no podemos buscar, salimos o inicializamos para evitar el error
-                        bot.sendMessage(chatId, '¡Uy! No se pudieron cargar las partidas. Intenta de nuevo más tarde.');
-                        return; 
-                    }
-
-                    const gameToJoin = db.data.games.find(game => game.invitationCode === joinCode && game.state === 'LOBBY');
+                    const gameToJoin = Game.findByCode(db, joinCode); // Usar el método estático
 
                     if (gameToJoin) {
-                        const playerExists = gameToJoin.players.some(player => player.userId === userId);
+                        // Obtener los jugadores de la partida para verificar si ya está unido
+                        const playersInGame = gameToJoin.getPlayers(db);
+                        const playerExists = playersInGame.some(player => player.userId === userId);
 
                         if (playerExists) {
                             bot.sendMessage(chatId, '¡Ya estás en esta partida! 🤷‍♂️');
-                        } else if (gameToJoin.players.length >= gameToJoin.maxPlayers) {
+                        } else if (playersInGame.length >= gameToJoin.maxPlayers) {
                             bot.sendMessage(chatId, '¡Uy! La partida está llena. Busca otra o crea una nueva. 😬');
                         } else {
-                            const newPlayer = new Player(userId, gameToJoin.id);
-                            gameToJoin.players.push(newPlayer);
-                            
-                            // db.data.players.push(newPlayer); // Comentado por si decides no usar el array global de players
-
-                            await db.write();
+                            // Añadir el nuevo jugador a la partida
+                            const newPlayer = gameToJoin.addPlayer(db, userId); // Añade el jugador y lo guarda
 
                             delete userStates[chatId];
 
                             const joinConfirmation = `¡Te has unido a la partida *"${gameToJoin.name}"*! 🎉\n\n` +
-                                                     `Ahora hay ${gameToJoin.players.length} jugadores. Espera a que el creador inicie el juego.`;
+                                `Ahora hay ${playersInGame.length + 1} jugadores. Espera a que el creador inicie el juego.`; // +1 porque ya se añadió
+
                             bot.sendMessage(chatId, joinConfirmation, { parse_mode: 'Markdown' });
-                            
+
+                            // Notificar al creador de la partida
                             if (gameToJoin.creatorId !== userId) {
-                                bot.sendMessage(gameToJoin.creatorId, `¡${userName} se ha unido a tu partida *"${gameToJoin.name}"*! Ahora sois ${gameToJoin.players.length}.`, { parse_mode: 'Markdown' });
+                                bot.sendMessage(gameToJoin.creatorId, `¡${userName} se ha unido a tu partida *"${gameToJoin.name}"*! Ahora sois ${playersInGame.length + 1}.`, { parse_mode: 'Markdown' });
                             }
                             console.log(`INFO: ${userName} (${userId}) se unió a la partida ${gameToJoin.name} (${gameToJoin.id})`);
                         }

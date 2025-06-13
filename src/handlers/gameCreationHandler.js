@@ -1,5 +1,5 @@
 // src/handlers/gameCreationHandler.js
-const { Game, Player } = require('../models/models');
+const { Game } = require('../models/models');
 
 class GameCreationHandler {
     constructor(db, userStates, botUtils) {
@@ -10,45 +10,41 @@ class GameCreationHandler {
 
     async handle(msg) {
         const chatId = msg.chat.id;
-        const text = msg.text;
-        const userName = msg.from.first_name || 'jugador';
         const userId = msg.from.id;
+        const username = msg.from.username || msg.from.first_name || `Usuario_${userId}`;
+        const gameName = msg.text.trim();
 
-        let gameName = text.trim();
-        if (gameName.toLowerCase() === 'omitir') {
-            gameName = `Partida de ${userName}`;
+        if (gameName.length < 3 || gameName.length > 50) {
+            await this.botUtils.sendMessage(chatId, 'El nombre de la partida debe tener entre 3 y 50 caracteres. Intenta de nuevo.');
+            return;
         }
 
         try {
-            const newGame = new Game(userId, gameName);
+            const newGame = new Game(null, gameName, userId);
             newGame.save(this.db);
-            console.log(`DEBUG: Nueva partida creada y guardada: ${newGame.name}, Código: ${newGame.invitationCode}`);
+            newGame.addPlayer(this.db, userId, username); // El creador se une automáticamente
 
-            const creatorPlayer = new Player(userId, newGame.id);
-            creatorPlayer.save(this.db);
-            console.log(`DEBUG: Jugador creador (${userName}) añadido a la partida.`);
+            delete this.userStates[userId];
 
-            delete this.userStates[chatId]; // Limpiar el estado después de la creación exitosa
+            const responseText = `¡Partida *"${gameName}"* creada con éxito! 🎉\n` +
+                `Código de invitación: \`${newGame.invitationCode}\`\n` +
+                `Actualmente hay 1 jugador (tú). Mínimo: ${newGame.minPlayers}, Máximo: ${newGame.maxPlayers}.\n\n` +
+                `¡Comparte el código con tus amigos para que se unan!`;
 
-            const confirmationMessage = `¡Partida *"${newGame.name}"* creada con éxito! 🎉\n\n` +
-                `Código de invitación: \`${newGame.invitationCode}\`\n\n` +
-                `Invita a tus amigos y cuando estén listos, iniciaremos el juego.`;
-
+            // ¡Corrección aquí! El keyboard debe ir en el sendMessage
             const keyboard = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '▶️ Iniciar Partida', callback_data: `start_game:${newGame.id}` }]
-                    ]
-                }
+                inline_keyboard: [
+                    [{ text: '▶️ Iniciar Partida', callback_data: `start_game:${newGame.id}` }],
+                    [{ text: '↩️ Volver al menú principal', callback_data: 'start_menu' }]
+                ]
             };
 
-            this.botUtils.sendMessage(chatId, confirmationMessage, { parse_mode: 'Markdown', ...keyboard });
-            console.log(`INFO: Partida creada: ${newGame.name} (${newGame.id}) por ${userName}`);
+            await this.botUtils.sendMessage(chatId, responseText, { parse_mode: 'Markdown', reply_markup: keyboard });
+            console.log(`INFO: Partida "${gameName}" (${newGame.id}) creada por ${username} (${userId}).`);
 
         } catch (error) {
-            console.error('ERROR: Error al crear la partida:', error);
-            // Podrías añadir lógica para comprobar si el nombre ya existe, etc.
-            this.botUtils.sendMessage(chatId, '¡Uy! Hubo un problema al crear la partida. Inténtalo de nuevo. Asegúrate que el nombre no sea muy largo.');
+            console.error('ERROR: Fallo al crear la partida:', error);
+            await this.botUtils.sendMessage(chatId, '¡Ups! No pude crear la partida. ¿Ya tienes una partida en curso? Intenta de nuevo más tarde o revisa tu última partida.');
         }
     }
 }

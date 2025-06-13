@@ -69,8 +69,13 @@ async function main() {
         // 9. Manejar mensajes de texto
         bot.on('message', async (msg) => {
             // Evitar que el messageHandler procese callbacks como texto
-            if (msg.text && !msg.via_bot) {
+            if (msg.text && !msg.via_bot && !msg.text.startsWith('/')) { // <-- ¡CAMBIO CLAVE AQUÍ!
                 messageHandler.handle(msg);
+            } else if (msg.text && msg.text.startsWith('/')) {
+                // Si es un comando que no tiene un manejador específico (como /start lo tiene),
+                // podrías poner aquí una respuesta genérica para comandos no reconocidos.
+                // Por ahora, con !msg.text.startsWith('/') es suficiente para el /start.
+                console.log(`INFO: Comando "${msg.text}" recibido, ignorado por el messageHandler general.`);
             }
         });
 

@@ -1,5 +1,5 @@
 // src/handlers/gameCreationHandler.js
-const { Game, Player } = require('../models');
+const { Game, Player } = require('../models/models');
 
 class GameCreationHandler {
     constructor(db, userStates, botUtils) {

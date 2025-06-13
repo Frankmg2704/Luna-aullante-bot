@@ -1,5 +1,5 @@
 // src/handlers/callbackQueryHandler.js
-const { Game, Player } = require('../models');
+const { Game, Player } = require('../models/models');
 
 class CallbackQueryHandler {
     constructor(bot, userStates, botUtils, db) { // <-- Añadido db

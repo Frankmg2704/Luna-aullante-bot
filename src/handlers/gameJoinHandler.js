@@ -1,5 +1,5 @@
 // src/handlers/gameJoinHandler.js
-const { Game } = require('../models');
+const { Game } = require('../models/models');
 
 class GameJoinHandler {
     constructor(db, userStates, botUtils) {

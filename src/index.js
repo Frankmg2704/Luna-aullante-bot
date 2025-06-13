@@ -1,16 +1,46 @@
-// src/index.js
-// ... (require's iniciales no cambian)
+// src/index.jsAdd commentMore actions
+console.log('DEBUG: Iniciando index.js...');
 
-// Importar manejadores
+// 1. Cargar el módulo para manejar variables de entorno
+require('dotenv').config();
+console.log('DEBUG: dotenv cargado.');
+
+// Importar clases y funciones esenciales
+let Game, Player;
+let initializeDb, getDb;
+try {
+    const models = require('./models/models');
+    Game = models.Game;
+    Player = models.Player;
+    ({ initializeDb, getDb } = require('./data/database'));
+    console.log('DEBUG: modules.js y database.js cargados correctamente. Clases Game y Player disponibles.');
+} catch (error) {
+    console.error('ERROR FATAL: No se pudo cargar módulos esenciales:', error.message);
+    process.exit(1);
+}
+
 const BotUtils = require('./utils/botUtils');
 const StartHandler = require('./handlers/startHandler');
 const CallbackQueryHandler = require('./handlers/callbackQueryHandler');
 const MessageHandler = require('./handlers/messageHandler');
 
-let db;
-let userStates = {};
 
-// ... (El resto del código hasta la función main() no cambia)
+let db; // Declara db aquí para que sea accesible en todo el archivo después de inicializada
+let userStates = {}; // Declara userStates aquí para que sea accesible (considerar persistencia para producción)
+
+// 2. Importar la librería del bot de Telegram
+let TelegramBot;
+try {
+    TelegramBot = require('node-telegram-bot-api');
+    console.log('DEBUG: node-telegram-bot-api cargado.');
+} catch (error) {
+    console.error('ERROR FATAL: No se pudo cargar node-telegram-bot-api:', error.message);
+    process.exit(1);
+}
+
+// 3. Obtener el token del bot desde las variables de entorno
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
 
 // ** -- Función principal asíncrona para iniciar todo el bot -- **
 async function main() {

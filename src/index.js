@@ -1,23 +1,5 @@
 // src/index.js
-console.log('DEBUG: Iniciando index.js...');
-
-// 1. Cargar el módulo para manejar variables de entorno
-require('dotenv').config();
-console.log('DEBUG: dotenv cargado.');
-
-// Importar clases y funciones esenciales
-let Game, Player;
-let initializeDb, getDb;
-try {
-    const models = require('./models');
-    Game = models.Game;
-    Player = models.Player;
-    ({ initializeDb, getDb } = require('./data/database'));
-    console.log('DEBUG: modules.js y database.js cargados correctamente. Clases Game y Player disponibles.');
-} catch (error) {
-    console.error('ERROR FATAL: No se pudo cargar módulos esenciales:', error.message);
-    process.exit(1);
-}
+// ... (require's iniciales no cambian)
 
 // Importar manejadores
 const BotUtils = require('./utils/botUtils');
@@ -25,28 +7,10 @@ const StartHandler = require('./handlers/startHandler');
 const CallbackQueryHandler = require('./handlers/callbackQueryHandler');
 const MessageHandler = require('./handlers/messageHandler');
 
-let db; // Declara db aquí para que sea accesible en todo el archivo después de inicializada
-let userStates = {}; // Declara userStates aquí para que sea accesible (considerar persistencia para producción)
+let db;
+let userStates = {};
 
-// 2. Importar la librería del bot de Telegram
-let TelegramBot;
-try {
-    TelegramBot = require('node-telegram-bot-api');
-    console.log('DEBUG: node-telegram-bot-api cargado.');
-} catch (error) {
-    console.error('ERROR FATAL: No se pudo cargar node-telegram-bot-api:', error.message);
-    process.exit(1);
-}
-
-// 3. Obtener el token del bot desde las variables de entorno
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-
-// 4. Verificar que el token esté definido
-if (!TOKEN) {
-    console.error('ERROR FATAL: El token del bot de Telegram no está definido. Asegúrate de configurar la variable de entorno TELEGRAM_BOT_TOKEN.');
-    process.exit(1);
-}
-console.log('DEBUG: Token de Telegram cargado.');
+// ... (El resto del código hasta la función main() no cambia)
 
 // ** -- Función principal asíncrona para iniciar todo el bot -- **
 async function main() {
@@ -62,8 +26,9 @@ async function main() {
         // Instanciar utilidades y manejadores
         const botUtils = new BotUtils(bot);
         const startHandler = new StartHandler(botUtils);
-        const callbackQueryHandler = new CallbackQueryHandler(bot, userStates, botUtils);
-        const messageHandler = new MessageHandler(db, userStates, botUtils); // Pasa db a messageHandler
+        // ¡CAMBIO AQUÍ! Pasamos 'db' al constructor
+        const callbackQueryHandler = new CallbackQueryHandler(bot, userStates, botUtils, db);
+        const messageHandler = new MessageHandler(db, userStates, botUtils);
 
         // 6. Manejar el comando /start
         bot.onText(/\/start/, (msg) => startHandler.handle(msg));
@@ -72,7 +37,12 @@ async function main() {
         bot.on('callback_query', async (callbackQuery) => callbackQueryHandler.handle(callbackQuery));
 
         // 9. Manejar mensajes de texto
-        bot.on('message', async (msg) => messageHandler.handle(msg));
+        bot.on('message', async (msg) => {
+            // Evitar que el messageHandler procese callbacks como texto
+            if (msg.text && !msg.via_bot) {
+                messageHandler.handle(msg);
+            }
+        });
 
         // 8. Manejar cualquier error de polling
         bot.on('polling_error', (error) => {

@@ -111,6 +111,11 @@ class CallbackQueryHandler {
                         if (result.success) {
                             await this.botUtils.editMessage(chatId, messageId, result.message, { parse_mode: 'Markdown' });
 
+                            // *** INICIO DE CORRECCIÓN: Notificación de Roles y Inicio de Noche ***
+                            // Primero, notificar a todos que la partida ha iniciado y es de noche.
+                            // Esto se enviará al grupo o chat donde se inició la partida
+                            await this.botUtils.sendMessage(chatId, '¡La partida ha comenzado! 🌑 Es noche cerrada. ¡Prepárense para la acción!', { parse_mode: 'Markdown' });
+
                             if (result.playerIds) {
                                 for (const playerId of result.playerIds) {
                                     const player = Player.findByUserIdAndGameId(this.db, playerId, game.id);
@@ -133,15 +138,17 @@ class CallbackQueryHandler {
 
                                         } else if (player.role.name === 'Aldeano') {
                                             roleMessage = `¡Eres un **Aldeano**! 🧑‍🌾 Tu objetivo es encontrar a los lobos. ¡Mucha suerte!`;
-                                            await this.botUtils.sendMessage(playerId, roleMessage, { parse_mode: 'Markdown' });
+                                            await this.botUtils.sendMessage(playerId, roleMessage + '\n\nEs de noche. Los lobos están activos. Permanece en silencio y espera al amanecer.', { parse_mode: 'Markdown' });
                                         } else {
                                             roleMessage = `Tu rol es **${player.role.name}**.`; // Fallback
-                                            await this.botUtils.sendMessage(playerId, roleMessage, { parse_mode: 'Markdown' });
+                                            await this.botUtils.sendMessage(playerId, roleMessage + '\n\nEs de noche. Permanece en silencio y espera al amanecer.', { parse_mode: 'Markdown' });
                                         }
                                         console.log(`INFO: Rol "${player.role.name}" enviado a ${player.username} (${playerId}) para partida ${game.name}.`);
                                     }
                                 }
                             }
+                            // *** FIN DE CORRECCIÓN ***
+
                         } else {
                             const keyboard = {
                                 reply_markup: {
@@ -321,9 +328,11 @@ class CallbackQueryHandler {
 
                     if (playersInGame.length > 0) {
                         detailsText += 'Jugadores actuales:\n';
+                        playersText = '';
                         playersInGame.forEach(player => {
-                            detailsText += `- ${player.username} ${player.userId === game.creatorId ? '(Creador)' : ''} ${player.isAlive ? '' : '(💀 Muerto)'} ${player.role ? `[${player.role.name}]` : ''}\n`; // Accediendo a .name
+                            playersText += `- ${player.username} ${player.userId === game.creatorId ? '(Creador)' : ''} ${player.isAlive ? '' : '(💀 Muerto)'} ${player.role ? `[${player.role.name}]` : ''}\n`;
                         });
+                        detailsText += playersText;
                     }
 
                     const keyboard = [];
@@ -410,11 +419,15 @@ class CallbackQueryHandler {
                 break;
 
             case callbackData.startsWith('show_day_vote_options:'):
-                await this.gamePhaseHandler.showDayVoteOptions(callbackQuery);
+                // TODO: Implementar showDayVoteOptions en GamePhaseHandler o aquí
+                await this.botUtils.sendMessage(chatId, 'La votación diurna aún no está implementada. ¡Pronto podrás linchar a los sospechosos!');
+                // await this.gamePhaseHandler.showDayVoteOptions(callbackQuery);
                 break;
 
             case callbackData.startsWith('day_vote:'):
-                await this.gamePhaseHandler.handleDayVote(callbackQuery);
+                // TODO: Implementar handleDayVote en GamePhaseHandler
+                await this.botUtils.sendMessage(chatId, 'La lógica de votación diurna aún no está implementada.');
+                // await this.gamePhaseHandler.handleDayVote(callbackQuery);
                 break;
 
             default:

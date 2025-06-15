@@ -17,14 +17,14 @@ class Game {
      * @param {string} invitationCode - El código de invitación único.
      * @param {string} [state="LOBBY"] - Estado actual de la partida (LOBBY, IN_PROGRESS, ENDED).
      * @param {number} [maxPlayers=12] - Número máximo de jugadores permitidos.
-     * @param {number} [minPlayers=5] - Número mínimo de jugadores para iniciar.
+     * @param {number} [minPlayers=3] - Número mínimo de jugadores para iniciar.
      * @param {string} [currentPhase="day"] - Fase actual del juego (day, night, voting, etc.).
      * @param {number} [rolesAssigned=0] - 0 si los roles no han sido asignados, 1 si sí.
      * @param {string} [voteCountString="{}"] - Cadena JSON para el objeto de conteo de votos.
      * @param {number} [day=0] - Día actual del juego.
      * @param {number} [lastActivity=Date.now()] - Timestamp de la última actividad en la partida.
      */
-    constructor(id, name, creatorId, invitationCode, state = "LOBBY", maxPlayers = 12, minPlayers = 5, currentPhase = 'day', rolesAssigned = 0, voteCountString = '{}', day = 0, lastActivity = Date.now()) {
+    constructor(id, name, creatorId, invitationCode, state = "LOBBY", maxPlayers = 12, minPlayers = 3, currentPhase = 'day', rolesAssigned = 0, voteCountString = '{}', day = 0, lastActivity = Date.now()) {
         this.id = id || uuidv4();
         this.name = name;
         this.creatorId = creatorId;

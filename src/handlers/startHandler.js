@@ -10,7 +10,12 @@ class StartHandler {
         const userName = msg.from.first_name || msg.from.username || 'invitado'; // Nombre de usuario
 
         const welcomeMessage = `¡Hola, *${userName}*! 👋\n\n` +
-            'Soy el Bot de Luna Aullante, tu anfitrión para el juego del lobo. ¿Listo para empezar a jugar?';
+            '¡Bienvenido al\n' +
+            'juego del Lobo en Telegram v0.9!\n' +
+            '\n' +
+            'Soy el Bot Luna Aullante, tu guía en\n' +
+            'este misterio. ¿Estás listo para desenmascarar a los lobos o sembrar\n' +
+            'el terror en el pueblo?\n' ;
 
         // Llama a sendMainMenu sin messageId para enviar un mensaje nuevo o con msg.message_id
         // para editar el mensaje del /start si ya existía.

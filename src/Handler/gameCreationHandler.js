@@ -1,4 +1,4 @@
-// src/handlers/gameCreationHandler.js
+// src/Handler/gameCreationHandler.js
 const { Game } = require('../models/models');
 
 class GameCreationHandler {

@@ -1,4 +1,4 @@
-// src/handlers/gameJoinHandler.js
+// src/Handler/gameJoinHandler.js
 const { Game, Player } = require('../models/models'); // Asegúrate que la ruta sea correcta
 
 class GameJoinHandler {

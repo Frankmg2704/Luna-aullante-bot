@@ -1,6 +1,6 @@
 // src/utils/botUtils.js
 
-class BotUtils {
+class BotUtils { // Nombre de la clase en inglés
     constructor(bot) {
         this.bot = bot;
     }
@@ -11,7 +11,7 @@ class BotUtils {
      * @param {string} text - El texto del mensaje.
      * @param {object} options - Opciones adicionales para el mensaje (ej: reply_markup).
      */
-    async sendMessage(chatId, text, options = {}) {
+    async sendMessage(chatId, text, options = {}) { // Función en inglés
         try {
             await this.bot.sendMessage(chatId, text, options);
         } catch (error) {
@@ -26,7 +26,7 @@ class BotUtils {
      * @param {string} text - El nuevo texto del mensaje.
      * @param {object} options - Opciones adicionales para el mensaje (ej: reply_markup).
      */
-    async editMessage(chatId, messageId, text, options = {}) {
+    async editMessage(chatId, messageId, text, options = {}) { // Función en inglés
         try {
             await this.bot.editMessageText(text, {
                 chat_id: chatId,
@@ -44,16 +44,14 @@ class BotUtils {
 
     /**
      * Envía o edita el menú principal del bot.
-     * ¡ESTA ES LA PARTE CLAVE QUE DEBE ESTAR CORRECTA!
      * @param {number} chatId - El ID del chat.
      * @param {number|null} messageId - El ID del mensaje a editar (si es null, envía uno nuevo).
      * @param {string} text - El texto a mostrar en el menú.
      */
-    async sendMainMenu(chatId, messageId = null, text = '¡Bienvenido al bot de Luna Aullante! ¿Qué quieres hacer?') {
+    async sendMainMenu(chatId, messageId = null, text = '¡Bienvenido al bot de Luna Aullante! ¿Qué quieres hacer?') { // Función en inglés
         const keyboard = {
             inline_keyboard: [
                 [{ text: '➕ Crear nueva partida', callback_data: 'create_game' }],
-                // ¡AQUÍ ESTÁN LOS BOTONES DIRECTOS PARA UNIRSE!
                 [{ text: '🔍 Buscar partida pública', callback_data: 'search_public_game' }],
                 [{ text: '➡️ Unirse por código', callback_data: 'enter_code' }]
             ]
@@ -67,4 +65,4 @@ class BotUtils {
     }
 }
 
-module.exports = BotUtils;
+module.exports = BotUtils; // Exportar la clase con el nombre en inglés

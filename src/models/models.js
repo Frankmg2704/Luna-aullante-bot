@@ -42,8 +42,9 @@ class Game {
     }
 
     static findByInvitationCode(db, invitationCode) {
+        const codeUpper = invitationCode.toUpperCase(); // Convertir a mayúsculas
         const stmt = db.prepare('SELECT * FROM games WHERE invitationCode = ?');
-        const data = stmt.get(invitationCode);
+        const data = stmt.get(codeUpper); // Buscar en mayúsculas
         if (data) {
             return new Game(
                 data.id, data.name, data.creatorId, data.invitationCode,

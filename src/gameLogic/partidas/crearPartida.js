@@ -69,7 +69,23 @@ class CreateGameHandler {
             }
 
             const gameId = uuidv4();
-            const invitationCode = generateRandomCode(6);
+            let invitationCode;
+            let isCodeUnique = false;
+            let attempts = 0;
+
+            while (!isCodeUnique && attempts < 5) {
+                invitationCode = generateRandomCode(6);
+                const existingGame = Game.findByInvitationCode(this.db, invitationCode);
+                if (!existingGame) {
+                    isCodeUnique = true;
+                }
+                attempts++;
+            }
+
+            if (!isCodeUnique) {
+                await this.botUtils.sendMessage(chatId, "😵 No se pudo crear la partida. Inténtalo de nuevo.");
+                return;
+            }
 
             const game = new Game(gameId, gameName, userId, invitationCode);
             game.save(this.db);
@@ -91,7 +107,7 @@ class CreateGameHandler {
         } catch (error) {
             console.error('ERROR: Fallo al crear la partida:', error);
             await this.botUtils.sendMessage(chatId, '¡Ups! Hubo un error al crear la partida. Por favor, inténtalo de nuevo más tarde.');
-            this.userStates[userId] = null;
+            delete this.userStates[userId];
         }
     }
 

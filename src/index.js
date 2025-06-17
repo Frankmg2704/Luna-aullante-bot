@@ -4,6 +4,7 @@ console.log('DEBUG: Iniciando index.js...');
 require('dotenv').config();
 console.log('DEBUG: dotenv cargado.');
 
+
 let Game, Player;
 let initializeDb, getDb;
 try {
@@ -30,6 +31,7 @@ const ManejadorSalaEspera = require('./gameLogic/partidas/manejadorSalaEspera');
 
 let db;
 let estadosUsuario = {};
+const userStates = estadosUsuario;
 
 let TelegramBot;
 try {
@@ -39,7 +41,6 @@ try {
     console.error('ERROR FATAL: No se pudo cargar node-telegram-bot-api:', error.message);
     process.exit(1);
 }
-
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
 async function main() {
@@ -52,8 +53,7 @@ async function main() {
         const bot = new TelegramBot(TOKEN, { polling: true });
         console.log('DEBUG: Instancia del bot de Telegram creada.');
 
-        const botUtils = new BotUtils(bot);
-        const startHandler = new StartHandler(botUtils);
+        const botUtils = new BotUtils(bot, db);
         const gamePhaseHandler = new GamePhaseHandler(bot, db, botUtils);
 
         // Instanciando el nuevo manejador de sala de espera
@@ -62,17 +62,20 @@ async function main() {
         // Pasamos manejadorSalaEspera a CreateGameHandler porque aún tiene la lógica inicial de sendLobbyMenu
         const createGameHandler = new CreateGameHandler(db, estadosUsuario, botUtils, manejadorSalaEspera); // ¡Nuevo parámetro!
         const joinGameHandler = new JoinGameHandler(db, estadosUsuario, botUtils, manejadorSalaEspera);     // ¡Nuevo parámetro!
+        const startHandler = new StartHandler(botUtils, userStates, manejadorSalaEspera);
 
         const callbackQueryHandler = new CallbackQueryHandler(
             bot, estadosUsuario, botUtils, db, gamePhaseHandler,
             createGameHandler, joinGameHandler, manejadorSalaEspera // ¡Nuevo parámetro!
         );
-        const messageHandler = new MessageHandler(db, estadosUsuario, botUtils);
+        const messageHandler = new MessageHandler(db, estadosUsuario, botUtils, joinGameHandler);
 
         messageHandler.setGameHandlers(createGameHandler, joinGameHandler);
 
 
-        bot.onText(/\/start/, (msg) => startHandler.handle(msg));
+        bot.onText(/\/start/, async (msg) => {
+            await startHandler.handle(msg); // Llama al StartHandler.handle
+        });
         bot.on('callback_query', async (callbackQuery) => callbackQueryHandler.handle(callbackQuery));
         bot.on('message', async (msg) => {
             if (msg.text && !msg.via_bot && !msg.text.startsWith('/')) {

@@ -56,7 +56,7 @@ class Game {
     }
 
     static getLobbyGames(db) {
-        const rows = db.prepare('SELECT * FROM games WHERE state = "LOBBY"').all();
+        const rows = db.prepare('SELECT * FROM games WHERE state = \'LOBBY\'').all();
         return rows.map(row => new Game(
             row.id, row.name, row.creatorId, row.invitationCode,
             row.state, row.maxPlayers, row.minPlayers, row.currentPhase,
@@ -75,8 +75,8 @@ class Game {
     }
 
     getPlayers(db) {
-        const playerRows = db.prepare('SELECT * FROM players WHERE gameId = ?').all();
-        return playerRows.map(row => new Player(row.id, row.gameId, row.userId, row.username, row.role, row.isAlive, row.votesFor, row.hasVoted));
+        const playerRows = db.prepare('SELECT * FROM players WHERE gameId = ?').all(this.id);
+        return playerRows.map(row => new Player(row.id, row.gameId, row.userId, row.username, row.role, row.isAlive === 1, row.votesFor, row.hasVoted=== 1));
     }
 
     updateState(db, newState) {
@@ -194,7 +194,7 @@ class Player {
         `).run(
             this.id, this.gameId, this.userId, this.username,
             this.role.name, // Siempre accedemos a .name para guardar el string
-            this.isAlive, this.hasVoted ? 1 : 0, this.votesFor // ¡Corrección del orden aquí! votesFor y hasVoted
+            this.isAlive ? 1 : 0, this.hasVoted ? 1 : 0, this.votesFor // ¡Corrección del orden aquí! votesFor y hasVoted
         );
     }
 

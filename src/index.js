@@ -1,89 +1,100 @@
 // src/index.js
+console.log('DEBUG: Iniciando index.js...');
 
-//"lowdb": "^7.0.0",
-//     "node-telegram-bot-api": "^0.66.0",
-//     "uuid": "^10.0.0"
-// devdependecis
-//     "nodemon": "^3.1.4"
-// 1. Cargar el módulo para manejar variables de entorno (si usas un archivo .env)
 require('dotenv').config();
-// 2. Importar la librería del bot de Telegram
-const TelegramBot = require('node-telegram-bot-api');
-// 3. Obtener el token del bot desde las variables de entorno
-// ¡IMPORTANTE: Crea un archivo .env en la raíz de tu proyecto conuna línea como:
-// TELEGRAM_BOT_TOKEN=TU_TOKEN_AQUI
-     const TOKEN = process.env.TELEGRAM_BOT_TOKEN;// 4. Verificar que el token esté definido
-    ;// 4. Verificar que el token esté definido
-if (!TOKEN) {
-    console.error('Error: El token del bot de Telegram no está definido. Asegúrate de configurar la variable de entornoTELEGRAM_BOT_TOKEN.');
-    process.exit(1); // Salir de la aplicación si no hay token
+console.log('DEBUG: dotenv cargado.');
+
+
+let Game, Player;
+let initializeDb, getDb;
+try {
+    const models = require('./models/models');
+    Game = models.Game;
+    Player = models.Player;
+    ({ initializeDb, getDb } = require('./data/bdPrincipal'));
+    console.log('DEBUG: models.js y database.js cargados correctamente. Clases Game y Player disponibles.');
+} catch (error) {
+    console.error('ERROR FATAL: No se pudo cargar módulos esenciales:', error.message);
+    process.exit(1);
 }
-// 5. Crear una nueva instancia del bot
-// El polling: true hace que el bot escuche los mensajes entrantes constantemente.
-console.log('Bot de Luna Aullante iniciando...');
-// 6. Manejar el comando /start
-bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    const userName = msg.from.first_name || 'jugador'; // Obtiene el nombre del usuario
-// Mensaje de bienvenida con Markdown para un toque más bonito
-    const welcomeMessage = `¡Hola, *${userName}*! 👋\n\n¡Bienvenido al
-juego del Lobo en Telegram!\n\nSoy el *Bot Luna Aullante*, tu guía en
-este misterio. ¿Estás listo para desenmascarar a los lobos o sembrar
-el terror en el pueblo?\n\nUsa los botones para empezar.`;
-// Opciones de botones para el menú principal
-    const keyboard = {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: '🐺 Crear Partida', callback_data:
-                        'create_game' }],
-                [{ text: '🔍 Unirse a Partida', callback_data:
-                        'join_game' }],
-// Futuros botones aquí, como 'Mis Partidas' o 'Ayuda'
-// [{ text: '📚 Ayuda', callback_data: 'help' }]
-            ]
-        }
-    };
-    bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown',
-        ...keyboard });
-    console.log(`Comando /start recibido de ${userName} (${chatId})`);
-});
-// 7. Manejar las acciones de los botones (callback_data)bot.on('callback_query', (callbackQuery) => {
-bot.on('callback_query', (callbackQuery) => {
-    const message = callbackQuery.message;
-    const data = callbackQuery.data;
-    const chatId = message.chat.id;
-    const userName = callbackQuery.from.first_name || 'jugador';
 
-    console.log(`Callback Query recibido: ${data} de ${userName} (${chatId})`);
-    bot.answerCallbackQuery(callbackQuery.id);
+const BotUtils = require('./utils/botUtils');
+const StartHandler = require('./Handler/startHandler');
+const MessageHandler = require('./Handler/messageHandler');
+const CallbackQueryHandler = require('./Handler/callbackQueryHandler');
+const GamePhaseHandler = require('./gameLogic/fases/manejadorFasesJuego');
 
-    switch (data) {
-        case 'create_game':
-            bot.sendMessage(chatId, '¡Excelente! Vas a crear una nueva partida. ¿Cómo te gustaría llamarla? (Puedes escribir el nombre o enviar "omitir" para un nombre automático)');
-            break;
-        case 'join_game':
-            bot.sendMessage(chatId, '¡Perfecto! ¿Cómo te gustaría unirte a una partida? Elige una opción:', {
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: '🔎 Buscar Partida Pública', callback_data: 'search_public_game' }],
-                        [{ text: '🔑 Introducir Código', callback_data: 'enter_code' }]
-                    ]
-                }
-            });
-            break;
-        case 'search_public_game':
-            bot.sendMessage(chatId, 'Buscando partidas públicas...(Esta función estará disponible pronto).');
-            break;
-        case 'enter_code':
-            bot.sendMessage(chatId, 'Por favor, introduce el código de la partida a la que quieres unirte.');
-            break;
-        default:
-            bot.sendMessage(chatId, '¡Ups! Esa opción no la reconozco aún. Intenta de nuevo.');
-            break;
+// Importando los manejadores de partida
+const CreateGameHandler = require('./gameLogic/partidas/crearPartida');
+const JoinGameHandler = require('./gameLogic/partidas/unirsePartida');
+const ManejadorSalaEspera = require('./gameLogic/partidas/manejadorSalaEspera'); // ¡Nuevo import!
+
+let db;
+let estadosUsuario = {};
+const userStates = estadosUsuario;
+
+let TelegramBot;
+try {
+    TelegramBot = require('node-telegram-bot-api');
+    console.log('DEBUG: node-telegram-bot-api cargado.');
+} catch (error) {
+    console.error('ERROR FATAL: No se pudo cargar node-telegram-bot-api:', error.message);
+    process.exit(1);
+}
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+async function main() {
+    console.log('DEBUG: Ejecutando función principal (main).');
+    try {
+        db = initializeDb();
+        console.log('DEBUG: Base de datos inicializada y accesible.');
+
+        console.log('INFO: Bot de Luna Aullante iniciando...');
+        const bot = new TelegramBot(TOKEN, { polling: true });
+        console.log('DEBUG: Instancia del bot de Telegram creada.');
+
+        const botUtils = new BotUtils(bot, db);
+        const gamePhaseHandler = new GamePhaseHandler(bot, db, botUtils);
+
+        // Instanciando el nuevo manejador de sala de espera
+        const manejadorSalaEspera = new ManejadorSalaEspera(db, botUtils, gamePhaseHandler);
+
+        // Pasamos manejadorSalaEspera a CreateGameHandler porque aún tiene la lógica inicial de sendLobbyMenu
+        const createGameHandler = new CreateGameHandler(db, estadosUsuario, botUtils, manejadorSalaEspera); // ¡Nuevo parámetro!
+        const joinGameHandler = new JoinGameHandler(db, estadosUsuario, botUtils, manejadorSalaEspera);     // ¡Nuevo parámetro!
+        const startHandler = new StartHandler(botUtils, userStates, manejadorSalaEspera);
+
+        const callbackQueryHandler = new CallbackQueryHandler(
+            bot, estadosUsuario, botUtils, db, gamePhaseHandler,
+            createGameHandler, joinGameHandler, manejadorSalaEspera // ¡Nuevo parámetro!
+        );
+        const messageHandler = new MessageHandler(db, estadosUsuario, botUtils, joinGameHandler);
+
+        messageHandler.setGameHandlers(createGameHandler, joinGameHandler);
+
+
+        bot.onText(/\/start/, async (msg) => {
+            await startHandler.handle(msg); // Llama al StartHandler.handle
+        });
+        bot.on('callback_query', async (callbackQuery) => callbackQueryHandler.handle(callbackQuery));
+        bot.on('message', async (msg) => {
+            if (msg.text && !msg.via_bot && !msg.text.startsWith('/')) {
+                messageHandler.handle(msg);
+            } else if (msg.text && msg.text.startsWith('/')) {
+                console.log(`INFO: Comando "${msg.text}" recibido, ignorado por el manejador general de mensajes.`);
+            }
+        });
+
+        bot.on('polling_error', (error) => {
+            console.error('ERROR: Error de polling:', error.code, error.message);
+        });
+
+        console.log('INFO: Bot de Luna Aullante conectado y listo para recibir mensajes...');
+
+    } catch (error) {
+        console.error('ERROR FATAL: El bot no pudo iniciar:', error.message);
+        process.exit(1);
     }
-});
-// 8. Manejar cualquier error
-bot.on('polling_error', (error) => {
-    console.error('Error de polling:', error.code, error.message);
-});
-console.log('Bot de Luna Aullante conectado y listo para recibirmensajes...');
+}
+
+main();
